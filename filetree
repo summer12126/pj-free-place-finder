@@ -1,0 +1,6 @@
+.streamlit/secrets.toml
+
+
+[connections.supabase]
+SUPABASE_URL = "xxxx"
+SUPABASE_KEY = "xxxx"

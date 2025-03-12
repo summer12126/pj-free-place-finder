@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>서울시 공간대여 - Seoul Space Finder</title>
+    <style>
+        /* Your CSS from the original HTML */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            z-index: 100;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo {
+            color: #2E8B57;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .search-container {
+            position: absolute;
+            top: 100px;
+            left: 24px;
+            right: 24px;
+            max-width: 850px;
+            margin: 0 auto;
+            z-index: 100;
+        }
+
+        .search-bar {
+            background: white;
+            border-radius: 40px;
+            padding: 16px 32px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            border: none;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .search-button {
+            background: #2E8B57;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .search-button:hover {
+            background: #246B45;
+        }
+
+        .filter-chips {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding: 0 8px;
+        }
+
+        .chip {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .chip:hover {
+            border-color: #2E8B57;
+            background: #f7f7f7;
+        }
+
+        .map-container {
+            position: fixed;
+            top: 80px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #f5f5f5;
+        }
+
+        .space-list {
+            position: fixed;
+            top: 80px;
+            right: 0;
+            width: 0;
+            height: calc(100vh - 80px);
+            background: white;
+            transition: width 0.3s ease;
+            overflow-y: auto;
+            box-shadow: -2px 0 8px rgba(0,0,0,0.1);
+        }
+
+        .space-list.active {
+            width: 400px;
+        }
+
+        .space-card {
+            padding: 24px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+
+        .space-card:hover {
+            background: #f7f7f7;
+        }
+
+        .space-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .space-details {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .tag {
+            display: inline-block;
+            background: #E8F5E9;
+            color: #2E8B57;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-top: 8px;
+            margin-right: 4px;
+        }
+
+        /* Placeholder for map */
+        .map-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 18px;
+        }
+    </style>
+
+    <!-- Supabase and Kakao Maps Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=YOUR_KAKAO_MAPS_API_KEY"></script>
+
+    <script>
+        // Supabase Client Initialization
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Kakao Maps Initialization
+        var mapContainer = document.getElementById('map'),
+            mapOption = {
+                center: new kakao.maps.LatLng(37.566826, 126.9786567), // 서울 중심 좌표
+                level: 8
+            };
+
+        var map = new kakao.maps.Map(mapContainer, mapOption);
+
+
+        async function getLocations() {
+            try {
+                const { data, error } = await supabase
+                    .from('your_table_name') // Replace with your actual table name
+                    .select('*');
+
+                if (error) {
+                    console.error('Error fetching locations:', error);
+                    return;
+                }
+
+                const spaceListContainer = document.querySelector('.space-list');
+                spaceListContainer.innerHTML = ''; // Clear existing list
+
+                data.forEach(location => {
+                    const spaceCard = document.createElement('div');
+                    spaceCard.classList.add('space-card');
+
+                    spaceCard.innerHTML = `
+                        <div class="space-title">${location.name}</div>
+                        <div class="space-details">
+                            ${location.address ? location.address + '<br>' : ''}
+                            ${location.telephone ? 'Tel: ' + location.telephone + '<br>' : ''}
+                        </div>
+                    `;
+
+                    spaceListContainer.appendChild(spaceCard);
+
+                    // Create marker on the map
+                    var marker = new kakao.maps.Marker({
+                        position: new kakao.maps.LatLng(location.latitude, location.longitude)
+                    });
+                    marker.setMap(map);
+                });
+            } catch (fetchError) {
+                console.error("Error in getLocations function:", fetchError);
+            }
+        }
+
+        // Call getLocations when the page loads
+        document.addEventListener('DOMContentLoaded', getLocations);
+
+    </script>
+</head>
+<body>
+    <!-- Map Container -->
+    <div class="map-container">
+        <div id="map" style="width:100%;height:100%;"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="logo">SpaceFinder Seoul</div>
+    </nav>
+
+    <!-- Search Container -->
+    <div class="search-container">
+        <div class="search-bar">
+            <input type="text" class="search-input" placeholder="지역구 검색 (예: 서초구)">
+            <button class="search-button">검색</button>
+        </div>
+        <div class="filter-chips">
+            <button class="chip">무료 공간</button>
+            <button class="chip">50인 이상</button>
+            <button class="chip">주차가능</button>
+            <button class="chip">지하철역 5분거리</button>
+        </div>
+    </div>
+
+    <!-- Space List Sidebar -->
+    <div class="space-list active">
+        <!-- The space list will be populated by JavaScript -->
+    </div>
+</body>
+</html>
